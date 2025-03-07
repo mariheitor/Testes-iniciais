@@ -1,0 +1,29 @@
+# Importando bibliotecas
+from sklearn.datasets import load_digits
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Carregar o conjunto de dados digits
+digits = load_digits()
+X = digits.data  # Dados (imagens em formato vetorizado)
+y = digits.target  # Rótulos (dígitos)
+
+# Aplicar PCA para reduzir as dimensões para 2
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+# Explicar a variância retida pelos dois primeiros componentes
+explained_variance = pca.explained_variance_ratio_
+print(f"Variância explicada pelos 2 primeiros componentes: {explained_variance}")
+print(f"Total de variância explicada: {np.sum(explained_variance)}")
+
+# Visualizar os dados reduzidos
+plt.figure(figsize=(10, 8))
+scatter = plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y, cmap='viridis', alpha=0.7)
+plt.colorbar(scatter, label='Classe do Dígito')
+plt.title("PCA aplicado ao conjunto de dados Digits")
+plt.xlabel("Componente Principal 1")
+plt.ylabel("Componente Principal 2")
+plt.grid(True)
+plt.show()
