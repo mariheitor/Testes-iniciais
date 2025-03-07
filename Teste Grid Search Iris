@@ -1,0 +1,43 @@
+#testando GridSearch
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+
+# Carregar o dataset Iris
+data = load_iris()
+X = data.data
+y = data.target
+
+# Dividir o dataset em treino e teste
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Criar o modelo SVM
+model = SVC()
+
+# Definir o conjunto de parâmetros que serão testados
+param_grid = {
+    'C': [0.1, 1, 10],
+    'kernel': ['linear', 'rbf'],
+    'gamma': ['scale', 'auto']
+}
+
+# Instanciar o GridSearchCV
+grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5)
+
+# Ajustar o modelo com os dados de treinamento
+grid_search.fit(X_train, y_train)
+
+# Melhor conjunto de parâmetros
+print("Melhores parâmetros:", grid_search.best_params_)
+
+# Melhor modelo
+best_model = grid_search.best_estimator_
+
+# Avaliar o modelo
+score = best_model.score(X_test, y_test)
+print("Acurácia no conjunto de teste:", score)
+
+# Resultados do GridSearch
+print("Resultados completos do GridSearch:")
+print(grid_search.cv_results_)
