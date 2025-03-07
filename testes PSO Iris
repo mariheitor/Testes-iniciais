@@ -1,0 +1,35 @@
+!pip install pyswarms
+from sklearn.datasets import load_iris
+from sklearn.model_selection import cross_val_score
+from sklearn.svm import SVC
+import pyswarms as ps
+import numpy as np
+
+# Carregar o conjunto de dados Iris
+data = load_iris()
+X = data.data
+y = data.target
+
+# Função objetivo para minimizar (erro do modelo)
+def objective_function(params):
+    C, gamma = params[:, 0], params[:, 1]  # Extrair os valores de C e gamma
+    scores = []
+    for i in range(len(C)):
+        model = SVC(C=C[i], gamma=gamma[i])
+        score = cross_val_score(model, X, y, cv=5, scoring='accuracy')  # Validação cruzada
+        scores.append(-np.mean(score))  # Queremos maximizar a acurácia, então minimizamos o negativo dela
+    return np.array(scores)
+
+# Limites para os parâmetros (C e gamma)
+bounds = ([0.1, 0.0001], [10, 1])  # Intervalo para cada parâmetro
+
+# Configuração do otimizador PSO
+options = {'c1': 1.5, 'c2': 1.5, 'w': 0.5, 'k': 30, 'p': 2}  # Hiperparâmetros do PSO
+optimizer = ps.single.GlobalBestPSO(n_particles=20, dimensions=2, options=options, bounds=bounds)
+
+# Executar a otimização
+best_cost, best_params = optimizer.optimize(objective_function, iters=50)
+
+# Exibir os melhores parâmetros e a melhor pontuação
+print(f"Melhores parâmetros encontrados: C={best_params[0]:.4f}, gamma={best_params[1]:.4f}")
+print(f"Melhor acurácia obtida: {-best_cost:.4f}")
