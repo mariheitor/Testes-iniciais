@@ -1,0 +1,39 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Definir parâmetros
+n_samples = 100  # Tamanho da amostra total
+n_iterations = 1000  # Número de simulações Monte Carlo
+
+# Gerar dados de duas classes
+class1 = np.random.gamma(shape=2, scale=2, size=n_samples // 2)  # Metade da amostra para Classe 1
+class2 = np.random.gamma(shape=10, scale=2, size=n_samples // 2)  # Metade da amostra para Classe 2
+
+# Unir as classes em um único conjunto de dados
+data = np.concatenate((class1, class2))
+labels = np.array([0] * (n_samples // 2) + [1] * (n_samples // 2))  # 0 para classe 1, 1 para classe 2
+
+# Realizar simulação Monte Carlo
+results = []
+for i in range(n_iterations):
+    # Escolher amostras aleatórias com reposição
+    sampled_indices = np.random.choice(range(n_samples), size=n_samples, replace=True)
+    sampled_data = data[sampled_indices]
+    sampled_labels = labels[sampled_indices]
+
+    # Calcular média de cada classe na amostra
+    mean_class1 = np.mean(sampled_data[sampled_labels == 0])  # Média da Classe 1
+    mean_class2 = np.mean(sampled_data[sampled_labels == 1])  # Média da Classe 2
+    results.append((mean_class1, mean_class2))
+
+# Transformar resultados em array para análise
+results = np.array(results)
+
+# Visualizar distribuição dos resultados
+plt.hist(results[:, 0], bins=30, alpha=0.5, label='Classe 1 (Média)')
+plt.hist(results[:, 1], bins=30, alpha=0.5, label='Classe 2 (Média)')
+plt.legend()
+plt.title('Distribuição das Médias (Monte Carlo)')
+plt.xlabel('Média')
+plt.ylabel('Frequência')
+plt.show()
