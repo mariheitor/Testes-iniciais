@@ -1,0 +1,56 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+# Carregar o conjunto de dados
+dados = pd.read_csv('https://raw.githubusercontent.com/predict-icmc/covid19/master/leitura-dados/ae.csv')
+dados = dados.drop('Unnamed: 0', axis=1)  # Remover a coluna indesejada
+x = dados.iloc[:, [8, 13]]  # Selecionando as características
+y = dados['obito']  # A variável alvo
+
+# Dividir o conjunto de dados em treino e teste
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+# Lista de kernels
+kernels = ['linear', 'poly', 'rbf']
+
+# Função para plotar a fronteira de decisão
+def plot_decision_boundary(X, y, model, kernel_type):
+    h = .02  # Passo na malha
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+    Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    plt.contourf(xx, yy, Z, cmap=plt.cm.coolwarm, alpha=0.8)
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.coolwarm, edgecolors='k')
+    plt.xlabel(x.columns[0])  # Usando os nomes das colunas diretamente
+    plt.ylabel(x.columns[1])
+    plt.title(f'Fronteira de Decisão SVM - Kernel: {kernel_type}')
+    plt.show()
+
+# Testar diferentes kernels
+for kernel in kernels:
+    print(f"=== Kernel: {kernel} ===")
+
+    # Criar e treinar o modelo SVM com o kernel escolhido
+    svm_rigid = SVC(kernel=kernel, C=1.0)
+    svm_rigid.fit(x_train, y_train)
+
+    # Fazer previsões
+    y_pred_rigid = svm_rigid.predict(x_test)
+
+    # Avaliar o modelo
+    print("Acurácia:", accuracy_score(y_test, y_pred_rigid))
+    print("Matriz de Confusão:")
+    print(confusion_matrix(y_test, y_pred_rigid))
+    print("Relatório de Classificação:")
+    print(classification_report(y_test, y_pred_rigid))
+
+    # Plotar a fronteira de decisão
+    plot_decision_boundary(x_test.values, y_test, svm_rigid, kernel)
