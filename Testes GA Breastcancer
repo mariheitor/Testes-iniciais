@@ -1,0 +1,143 @@
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# Carregar o Breast Cancer Dataset
+cancer = load_breast_cancer()
+X = cancer.data
+y = cancer.target
+
+# Selecionando duas características
+X = X[:, [0, 1]]  # Usando a primeira e a segunda característica como exemplo
+
+# Dividir o dataset em treino e teste
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Função para criar um indivíduo (valores de C e Gamma)
+def create_individual():
+    C = random.uniform(0.001, 100)  # Parâmetro C
+    gamma = random.uniform(0.0001, 1)  # Parâmetro Gamma
+    return [C, gamma]
+
+# Função de fitness (avaliação de um indivíduo)
+def evaluate(individual):
+    C, gamma = individual
+    svm = SVC(C=C, gamma=gamma)  # Cria o modelo SVM
+    svm.fit(X_train, y_train)  # Treina o modelo
+    y_pred = svm.predict(X_test)  # Faz previsões no conjunto de teste
+    return accuracy_score(y_test, y_pred)  # Retorna a acurácia como fitness
+
+# Função de cruzamento (crossover) entre dois indivíduos
+def crossover(parent1, parent2):
+    crossover_point = random.randint(1, len(parent1)-1)
+    child1 = parent1[:crossover_point] + parent2[crossover_point:]
+    child2 = parent2[:crossover_point] + parent1[crossover_point:]
+    return child1, child2
+
+# Função de mutação (alterar um parâmetro aleatório de um indivíduo)
+def mutate(individual):
+    mutant = individual[:]
+    mutation_point = random.randint(0, len(individual)-1)
+    if mutation_point == 0:  # Mutação no parâmetro C
+        mutant[mutation_point] = random.uniform(0.001, 100)
+    else:  # Mutação no parâmetro Gamma
+        mutant[mutation_point] = random.uniform(0.0001, 1)
+    return mutant
+
+# Função de seleção (selecionar os melhores indivíduos da população)
+def select(population, fitness_values, num_parents):
+    sorted_population = [ind for _, ind in sorted(zip(fitness_values, population), reverse=True)]
+    return sorted_population[:num_parents]
+
+# Algoritmo Genético
+def genetic_algorithm(num_generations, population_size, num_parents, mutation_rate):
+    # Inicializar população
+    population = [create_individual() for _ in range(population_size)]
+
+    best_individual = None
+    best_fitness = -1
+
+    for generation in range(num_generations):
+        # Avaliar a população
+        fitness_values = [evaluate(individual) for individual in population]
+
+        # Encontrar o melhor indivíduo
+        max_fitness = max(fitness_values)
+        if max_fitness > best_fitness:
+            best_fitness = max_fitness
+            best_individual = population[fitness_values.index(max_fitness)]
+
+        # Seleção dos melhores pais
+        parents = select(population, fitness_values, num_parents)
+
+        # Geração dos filhos
+        next_generation = parents[:]
+        while len(next_generation) < population_size:
+            parent1, parent2 = random.sample(parents, 2)
+            child1, child2 = crossover(parent1, parent2)
+
+            # Aplicar mutação com uma certa probabilidade
+            if random.random() < mutation_rate:
+                child1 = mutate(child1)
+            if random.random() < mutation_rate:
+                child2 = mutate(child2)
+
+            next_generation.extend([child1, child2])
+
+        # Atualizar a população para a próxima geração
+        population = next_generation[:population_size]
+
+        # Exibir o progresso
+        print(f"Geração {generation+1}/{num_generations}, Melhor Acurácia: {best_fitness:.4f}")
+
+    return best_individual, best_fitness
+
+# Parâmetros do Algoritmo Genético
+num_generations = 10  # Número de gerações
+population_size = 20  # Tamanho da população
+num_parents = 10  # Número de pais selecionados
+mutation_rate = 0.2  # Taxa de mutação
+
+# Rodar o Algoritmo Genético
+best_individual, best_fitness = genetic_algorithm(num_generations, population_size, num_parents, mutation_rate)
+
+print(f"Melhor Indivíduo: C = {best_individual[0]:.4f}, Gamma = {best_individual[1]:.4f}")
+print(f"Melhor Acurácia: {best_fitness:.4f}")
+
+# Treinar o SVM com o melhor indivíduo encontrado
+best_C, best_gamma = best_individual
+svm = SVC(C=best_C, gamma=best_gamma)
+svm.fit(X_train, y_train)
+
+# Gerar um grid para visualização das fronteiras de decisão
+h = .02  # Tamanho do passo para o grid
+x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+# Prever a classe em cada ponto do grid
+Z = svm.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+# Plotar as fronteiras de decisão
+plt.figure(figsize=(10, 6))
+
+# Plotar as fronteiras de decisão
+plt.contourf(xx, yy, Z, alpha=0.8)
+
+# Plotar os dados de treino
+plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, edgecolors='k', marker='o', cmap=plt.cm.Paired, label="Treinamento")
+
+# Plotar os dados de teste
+plt.scatter(X_test[:, 0], X_test[:, 1], c=y_test, edgecolors='k', marker='^', cmap=plt.cm.Paired, label="Teste")
+
+# Ajustar os eixos e adicionar legendas
+plt.title(f"Fronteira de Decisão do SVM com GA (C = {best_C:.3f}, Gamma = {best_gamma:.3f})")
+plt.xlabel('Mean Radius')
+plt.ylabel('Mean Texture')
+plt.legend()
+plt.show()
